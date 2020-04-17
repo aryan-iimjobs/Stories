@@ -72,7 +72,7 @@ class MyProgressView: UIView {
     func addBackgroundGradient() {
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = bounds
-        gradientLayer.colors = [UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0.3).cgColor,UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0).cgColor]
+        gradientLayer.colors = [UIColor(red: 0, green: 0, blue: 0, alpha: 0.3).cgColor,UIColor(displayP3Red: 0, green: 0, blue: 0, alpha: 0).cgColor]
         gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
         gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
         

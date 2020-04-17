@@ -19,6 +19,8 @@ class DotStories: UIView {
     var parentVC: HomeVC!
     var getDataUrl: String = ""
     
+    var isStoriesViewHidden: Bool = false
+    
     var managedObjectContext: NSManagedObjectContext?
     var arrayCompanies: [CompanyModel] = []
     
@@ -30,12 +32,17 @@ class DotStories: UIView {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout);
         cv.register(CompanyIconCell.self, forCellWithReuseIdentifier: "CompanyIconCell")
         cv.showsHorizontalScrollIndicator = false
-        cv.backgroundColor = .white
+        cv.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
         return cv;
     }();
     
     override init(frame: CGRect) {
         super.init(frame: .zero)
+        self.isHidden = true // hidden by default
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
     
     func initializeStories(parentVC: HomeVC) {
@@ -49,33 +56,60 @@ class DotStories: UIView {
         
         //get data from API
         requestData()
+
+        let notificationCenter = NotificationCenter.default
+        
+        //handel change in visibility of main view
+        notificationCenter.addObserver(self, selector: #selector(viewVisibilityStateChanged), name: NSNotification.Name(rawValue: "changeStoriesVisibilityState"), object: nil)
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
-    
+        
         addSubview(collectionView)
         collectionView.frame = CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
         collectionView.delegate = self
         collectionView.dataSource = self
 
-        //handel moving to background
-        let notificationCenter = NotificationCenter.default
-        notificationCenter.addObserver(self, selector: #selector(appMovedToBackground), name: UIApplication.willResignActiveNotification, object: nil)
+        // add gradient view behind transparent collectionView
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = bounds
+        gradientLayer.colors = [UIColor(displayP3Red: 1, green: 1, blue: 1, alpha: 1).cgColor,UIColor(red: 0.97, green: 0.97, blue: 0.97, alpha: 1).cgColor]
+        gradientLayer.locations = [0, 0.99]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
+        view.layer.insertSublayer(gradientLayer, at: 0)
+        addSubview(view)
+        sendSubviewToBack(view)
     }
     
-    @objc func appMovedToBackground() {
-            NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
-           print("MainVC: vc moved to background")
-           saveToCoreData(companies: self.arrayCompanies)
-       }
+    @objc func viewVisibilityStateChanged() {
+        if self.isStoriesViewHidden {
+            self.unHideStoriesView()
+        } else {
+            self.hideStoriesView()
+        }
+    }
+    
+    @objc func hideStoriesView() {
+        self.isStoriesViewHidden = true
+        isHidden = true
+    }
+    
+    @objc func unHideStoriesView() {
+        self.isStoriesViewHidden = false
+        self.requestData()
+    }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
     //MARK:- Helper Methods
-    func requestData() {
+    @objc func requestData() {
+        if self.isStoriesViewHidden { return }
+        self.arrayCompanies.removeAll() //empty old stories
         AF.request(self.getDataUrl).responseJSON { response in
             switch response.result {
             case .success:
@@ -126,6 +160,12 @@ class DotStories: UIView {
                 self.arrayCompanies = self.getFromCoreData()
             }
             self.collectionView.reloadData()
+            if self.arrayCompanies.count == 0 {
+                self.hideStoriesView()
+            } else {
+                self.isStoriesViewHidden = false
+                self.isHidden = false
+            }
         }
     }
     
@@ -254,6 +294,11 @@ class DotStories: UIView {
             }
         }
         return allSeenFlag
+    }
+    
+    @objc func pulledToRefreshMainView() {
+        self.saveToCoreData(companies: self.arrayCompanies)
+        requestData()
     }
 }
 

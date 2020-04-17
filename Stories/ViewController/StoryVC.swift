@@ -52,6 +52,10 @@ class StoryVC: UIViewController {
         self.currentStoryIndex = selectedStoryIndex
         super.init(nibName: nil, bundle: nil)
     }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
